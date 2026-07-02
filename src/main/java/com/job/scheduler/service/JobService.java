@@ -7,16 +7,23 @@ import org.springframework.stereotype.Service;
 import com.job.scheduler.dto.CreateJobRequest;
 import com.job.scheduler.dto.JobResponse;
 import com.job.scheduler.entity.Job;
+import com.job.scheduler.entity.Project;
 import com.job.scheduler.entity.Queue;
+import com.job.scheduler.entity.User;
 import com.job.scheduler.enums.JobStatus;
 import com.job.scheduler.repository.JobRepository;
+import com.job.scheduler.repository.ProjectRepository;
+import com.job.scheduler.repository.QueueRepository;
 
 @Service
 public class JobService {
     private final JobRepository job_repo;
-
-    public JobService(JobRepository job_repo) {
+    private final QueueRepository q_repo;
+    private final ProjectRepository pr_repo;
+    public JobService(JobRepository job_repo,QueueRepository q_repo,ProjectRepository pr_repo) {
         this.job_repo = job_repo;
+        this.q_repo = q_repo;
+        this.pr_repo = pr_repo;
     }
 
     public JobResponse getJob(Long queue,Long id){
@@ -27,19 +34,30 @@ public class JobService {
         JobResponse resp = new JobResponse();
         return resp;
     }
- public JobResponse createJob(Long queueId, CreateJobRequest req) {
+ public JobResponse createJob(Long queueId, CreateJobRequest req,Long user) {
+    Project px = pr_repo.findByOwnerId(user).orElse(null);// (user).orElse(null);
+    if(px==null){
+        throw new IllegalStateException("Project not found");
+    }
+    Queue queue = q_repo.findById(queueId).orElse(null);
+    if(queue==null){
+        queue = q_repo.findById(0l).orElse(null);
+        if(queue==null){
+            Queue x = new Queue();
+            x.setName("Default");
+            x.setProject(px);
+            q_repo.save(x);
+            queue = x;
+        }
+    }
 
-    // Queue queue = queueRepository.findById(queueId)
-    //         .orElseThrow(() -> new NoSuchElementException("Queue not found"));
-
-    // if (queue.isPaused()) {
-    //     throw new IllegalStateException("Cannot enqueue job: queue is paused");
-    // }
-
+    if (queue.isPaused()) {
+        throw new IllegalStateException("Cannot enqueue job: queue is paused");
+    }
     Job job = new Job();
-    Queue q = new Queue();
-    
-    job.setQueue(q);
+    //q.setName(name);
+    //queue.setId(queueId);
+    job.setQueue(queue);
     job.setType(req.getType());
     job.setPayload(req.getPayLoad());
     job.setPriority((req.getPriority() != null) ? req.getPriority() : 0);

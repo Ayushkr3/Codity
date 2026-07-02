@@ -13,7 +13,7 @@ import io.jsonwebtoken.security.Keys;
 public class JwtUtil {
 
     private final SecretKey key = Keys.hmacShaKeyFor(
-            "crazy".getBytes());
+            "its-crazy-that-it-takes-256-bit-key-for-hmac-hashing".getBytes());
 
     private final long EXPIRATION_MS = 24 * 60 * 60 * 1000;
 

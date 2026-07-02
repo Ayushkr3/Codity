@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Scheduler Login</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial,Helvetica,sans-serif;
+        }
+
+        body {
+            background: #f4f6f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            width: 380px;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,.15);
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            background: #1976d2;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+            button:hover {
+                background: #1258a8;
+            }
+
+        .link {
+            text-align: center;
+            margin-top: 15px;
+        }
+
+            .link a {
+                color: #1976d2;
+                cursor: pointer;
+                text-decoration: none;
+            }
+
+        .hidden {
+            display: none;
+        }
+
+        .message {
+            margin-top: 15px;
+            text-align: center;
+            font-weight: bold;
+        }
+    </style>
+
+</head>
+<body>
+
+    <div class="container">
+
+        <!-- LOGIN -->
+
+        <div id="loginBox">
+
+            <h2>Login</h2>
+
+            <input id="loginEmail"
+                   type="email"
+                   placeholder="Email">
+
+            <input id="loginPassword"
+                   type="password"
+                   placeholder="Password">
+
+            <button onclick="login()">
+                Login
+            </button>
+
+            <div class="link">
+                No account?
+                <a onclick="showRegister()">Register</a>
+            </div>
+
+        </div>
+
+        <!-- REGISTER -->
+
+        <div id="registerBox" class="hidden">
+
+            <h2>Register</h2>
+
+            <input id="name"
+                   type="text"
+                   placeholder="Full Name">
+
+            <input id="registerEmail"
+                   type="email"
+                   placeholder="Email">
+
+            <input id="registerPassword"
+                   type="password"
+                   placeholder="Password">
+
+            <button onclick="register()">
+                Register
+            </button>
+
+            <div class="link">
+                Already have an account?
+                <a onclick="showLogin()">Login</a>
+            </div>
+
+        </div>
+
+        <div id="message" class="message"></div>
+
+    </div>
+
+    <script>
+
+const BASE_URL = "http://localhost:8080/api/auth";
+
+function showRegister(){
+    loginBox.classList.add("hidden");
+    registerBox.classList.remove("hidden");
+    message.innerHTML="";
+}
+
+function showLogin(){
+    registerBox.classList.add("hidden");
+    loginBox.classList.remove("hidden");
+    message.innerHTML="";
+}
+
+async function register(){
+
+    const body={
+        name:document.getElementById("name").value,
+        email:document.getElementById("registerEmail").value,
+        password:document.getElementById("registerPassword").value
+    };
+
+    try{
+
+        const response=await fetch(BASE_URL+"/register",{
+
+            method:"POST",
+
+            headers:{
+                "Content-Type":"application/json"
+            },
+
+            body:JSON.stringify(body)
+
+        });
+
+        const data=await response.json();
+
+        if(!response.ok){
+            throw new Error(data.message || "Registration failed");
+        }
+
+        localStorage.setItem("jwt",data.token);
+
+        message.style.color="green";
+        message.innerHTML="Registration Successful!";
+
+        console.log(data);
+
+    }
+
+    catch(err){
+
+        message.style.color="red";
+        message.innerHTML=err.message;
+
+    }
+
+}
+
+async function login(){
+
+    const body={
+
+        email:document.getElementById("loginEmail").value,
+
+        password:document.getElementById("loginPassword").value
+
+    };
+
+    try{
+
+        const response=await fetch(BASE_URL+"/login",{
+
+            method:"POST",
+
+            headers:{
+                "Content-Type":"application/json"
+            },
+
+            body:JSON.stringify(body)
+
+        });
+
+        const data=await response.json();
+
+        if(!response.ok){
+            throw new Error(data.message || "Login failed");
+        }
+
+        localStorage.setItem("jwt",data.token);
+
+        message.style.color="green";
+        message.innerHTML="Login Successful";
+
+        console.log(data);
+
+        // Example redirect
+        window.location.href="dashboard.html";
+
+    }
+
+    catch(err){
+
+        message.style.color="red";
+        message.innerHTML=err.message;
+
+    }
+
+}
+
+    </script>
+
+</body>
+</html>

@@ -130,9 +130,9 @@ public class Queue {
         this.priority = priority;
     }
 
-    // public void setProject(Project project) {
-    //     this.project = project;
-    // }
+    public void setProject(Project project) {
+        this.project = project;
+    }
 
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;

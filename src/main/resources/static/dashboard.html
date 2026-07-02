@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Create Job</title>
+
+    <style>
+
+        body {
+            margin: 0;
+            background: #f4f4f4;
+            font-family: Arial,Helvetica,sans-serif;
+        }
+
+        .container {
+            width: 450px;
+            margin: 40px auto;
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 3px 12px rgba(0,0,0,.15);
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 15px;
+        }
+
+        textarea {
+            resize: vertical;
+            height: 120px;
+        }
+
+        button {
+            width: 100%;
+            margin-top: 25px;
+            padding: 12px;
+            background: #1976d2;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+            button:hover {
+                background: #125aa0;
+            }
+    </style>
+
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h2>Create Job</h2>
+
+        <form id="jobForm">
+
+            <label>Queue</label>
+
+            <select id="queue">
+                <option value="1">Default Queue</option>
+                <option value="2">Email Queue</option>
+                <option value="3">SMS Queue</option>
+            </select>
+
+
+            <label>Job Type</label>
+
+            <select id="type">
+                <option>Email</option>
+                <option>SMS</option>
+                <option>Notification</option>
+                <option>Webhook</option>
+            </select>
+
+
+            <label>Priority</label>
+
+            <select id="priority">
+                <option value="0">Low</option>
+                <option value="5">Normal</option>
+                <option value="10">High</option>
+            </select>
+
+
+            <label>Run At</label>
+
+            <input type="datetime-local"
+                   id="atTime">
+
+
+            <label>Delay (seconds)</label>
+
+            <input type="number"
+                   id="delay"
+                   placeholder="Optional">
+
+
+            <label>Cron Expression</label>
+
+            <input type="text"
+                   id="cron"
+                   placeholder="0 */5 * * * *">
+
+
+            <label>Payload</label>
+
+<textarea id="payload"
+          placeholder='{"email":"john@gmail.com"}'></textarea>
+
+
+            <button type="submit">
+                Create Job
+            </button>
+
+        </form>
+
+    </div>
+
+    <script>
+
+document.getElementById("jobForm").addEventListener("submit",async(e)=>{
+
+    e.preventDefault();
+
+    const body={
+
+        queueId:Number(document.getElementById("queue").value),
+
+        type:document.getElementById("type").value,
+
+        priority:Number(document.getElementById("priority").value),
+
+        atTime:document.getElementById("atTime").value || null,
+
+        DelaySecond:document.getElementById("delay").value
+            ? Number(document.getElementById("delay").value)
+            : null,
+
+        cronExp:document.getElementById("cron").value || null,
+
+        payload:document.getElementById("payload").value
+
+    };
+
+    console.log(body);
+
+    const token=localStorage.getItem("jwt");
+
+    const response=await fetch(
+        "http://localhost:8080/api/queues/jobs",
+        {
+
+            method:"POST",
+
+            headers:{
+                "Content-Type":"application/json",
+                "Authorization":"Bearer "+token
+            },
+
+            body:JSON.stringify(body)
+
+        }
+    );
+
+    console.log(await response.text());
+
+});
+
+    </script>
+
+</body>
+</html>

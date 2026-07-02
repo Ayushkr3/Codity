@@ -3,6 +3,7 @@ package com.job.scheduler.entity;
 import java.time.Instant;
 
 import com.job.scheduler.enums.JobStatus;
+import com.job.scheduler.enums.RetryMethods;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -60,9 +61,9 @@ public class Job {
     @Column(name = "max_retries", nullable = false)
     private Integer maxRetries = 3;
 
-    // @Enumerated(EnumType.STRING)
-    // @Column(name = "retry_strategy", length = 20)
-    // private RetryStrategy retryStrategy = RetryStrategy.EXPONENTIAL;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "retry_strategy", length = 20)
+    private RetryMethods retryStrategy = RetryMethods.EXPONENTIAL;
 
     @Column(name = "worker_id")
     private String workerId;// which worker claimed this job
