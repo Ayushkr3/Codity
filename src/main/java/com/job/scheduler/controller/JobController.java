@@ -29,8 +29,13 @@ public class JobController {
 
     @PostMapping
     public ResponseEntity<JobResponse> createJob(
-            @PathVariable Long queueId,
+            //@PathVariable Long queueId,
             @Valid @RequestBody CreateJobRequest request) {
+        Long queueId =1l;
+        if(request.getAtTime()==null&& request.getCronExp()==null && request.getDelaySecond()==null){
+            JobResponse js = new JobResponse();
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(js);
+        }
         JobResponse job = jobService.createJob(queueId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(job);
     }

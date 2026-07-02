@@ -1,14 +1,13 @@
 package com.job.scheduler.service;
 
 import java.time.Instant;
-import java.util.NoSuchElementException;
-import java.util.Queue;
 
 import org.springframework.stereotype.Service;
 
 import com.job.scheduler.dto.CreateJobRequest;
 import com.job.scheduler.dto.JobResponse;
 import com.job.scheduler.entity.Job;
+import com.job.scheduler.entity.Queue;
 import com.job.scheduler.enums.JobStatus;
 import com.job.scheduler.repository.JobRepository;
 
@@ -38,7 +37,9 @@ public class JobService {
     // }
 
     Job job = new Job();
-    //job.setQueue(queue);
+    Queue q = new Queue();
+    
+    job.setQueue(q);
     job.setType(req.getType());
     job.setPayload(req.getPayLoad());
     job.setPriority((req.getPriority() != null) ? req.getPriority() : 0);

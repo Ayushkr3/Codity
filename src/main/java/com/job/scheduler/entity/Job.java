@@ -1,7 +1,6 @@
 package com.job.scheduler.entity;
 
 import java.time.Instant;
-import com.job.scheduler.entity.Queue;
 
 import com.job.scheduler.enums.JobStatus;
 
