@@ -21,7 +21,7 @@
 7. **Access the Application**
     Once the containers are running, open your web browser and navigate to:
     ```bash
-    https://localhost:8080/index.html
+    http://localhost:8080/index.html
 
 ## Architecture
 
