@@ -285,31 +285,6 @@ row also exists so the failure reason and payload are frozen at the moment of
 failure. If the job is later requeued and re-fails differently, the original
 failure snapshot isn't overwritten.
 
-### What's intentionally deferred / not implemented
-
-Being upfront about the gap between "assignment scope" and what's here:
-
-- **Per-queue concurrency limits are modeled but not enforced.** `Queue.
-  concurrencyLimit`exists and is exposed via the API, but`claimNextJobIds`
-  doesn't currently check how many jobs from that queue are already `RUNNING`
-  before claiming more. The fix is to add a `COUNT(*) WHERE queue_id = ? AND
-  status = 'RUNNING'` check into the claim query (or a per-queue semaphore in
-  `JobExecutor`) — flagged here rather than silently shipped as "done."
-- **No workflow/job dependencies** (job B waits on job A). Would need a
-  `job\_dependencies` join table and a "not ready until dependencies complete"
-  clause in the claim query.
-- **No rate limiting on job creation or the API itself.**
-- **No WebSocket/SSE push for the dashboard** — it polls the REST API instead of
-  getting live pushed updates.
-- **No RBAC beyond "you own it or you don't"** — every project is single-owner;
-  there's no team/shared-access model.
-- **Schema managed via `hibernate.ddl-auto=update`**, not a migration tool
-  (Flyway/Liquibase). Fine for an assignment/prototype, not for production — a
-  real migration history is the natural next step.
-- **DLQ listing (`GET /api/dlq`) isn't scoped per-project** the way jobs/queues
-  are — it returns dead letters across all queues visible to the request. Given
-  more time this would join through `job → queue → project → owner` like the rest
-  of the ownership checks.
 
 ### Testing
 
