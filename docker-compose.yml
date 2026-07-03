@@ -1,0 +1,64 @@
+
+services:
+
+  postgres:
+
+    image: postgres:16
+
+    container_name: scheduler-db
+
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: jobs
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  api:
+    image: ghcr.io/ayushkr3/scheduler:1.0
+
+    container_name: scheduler-api
+
+    depends_on:
+      - postgres
+
+    ports:
+      - "8080:8080"
+
+    environment:
+
+      APP_MODE: api
+
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/jobs
+
+      SPRING_DATASOURCE_USERNAME: postgres
+
+      SPRING_DATASOURCE_PASSWORD: password
+
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+  worker:
+    image: ghcr.io/ayushkr3/scheduler:1.0
+    depends_on:
+      - postgres
+
+    environment:
+
+      APP_MODE: worker
+
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/jobs
+
+      SPRING_DATASOURCE_USERNAME: postgres
+
+      SPRING_DATASOURCE_PASSWORD: password
+
+      SPRING_JPA_HIBERNATE_DDL_AUTO: none
+
+volumes:
+
+  postgres-data:
