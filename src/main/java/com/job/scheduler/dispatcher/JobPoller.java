@@ -4,10 +4,7 @@ import java.net.InetAddress;
 import java.util.List;
 import java.util.UUID;
 
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
-import jakarta.transaction.Transactional;
-
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -15,8 +12,13 @@ import com.job.scheduler.entity.Job;
 import com.job.scheduler.repository.JobRepository;
 import com.job.scheduler.service.WorkerService;
 
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+import jakarta.transaction.Transactional;
+
 
 @Component
+@ConditionalOnProperty(name = "app.mode", havingValue = "worker")
 public class JobPoller {
 
     private static final int BATCH_SIZE = 10;
@@ -42,7 +44,7 @@ public class JobPoller {
         }
         workerService.register(workerId, hostname);
     }
-
+    
     @Scheduled(fixedDelay = 500)
     @Transactional
     public void pollAndClaim() {

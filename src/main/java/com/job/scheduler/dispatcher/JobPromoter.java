@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.job.scheduler.repository.JobRepository;
 
 @Component
+//@ConditionalOnProperty(name = "app.mode", havingValue = "worker")
 public class JobPromoter {
 
     private final JobRepository jobRepository;

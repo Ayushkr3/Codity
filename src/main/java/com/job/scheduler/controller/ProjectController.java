@@ -18,6 +18,7 @@ import com.job.scheduler.service.ProjectService;
 import jakarta.validation.Valid;
 
 @RestController
+
 @RequestMapping("/api/projects")
 public class ProjectController {
 
