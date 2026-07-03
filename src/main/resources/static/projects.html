@@ -1,64 +1,81 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-    <title>Projects</title>
-    <link rel="stylesheet" href="css/style.css">
+<meta charset="UTF-8">
+<title>Projects - Job Scheduler</title>
+<link rel="stylesheet" href="css/style.css">
 </head>
-
 <body>
 
-<h2>Projects</h2>
+<main>
+  <h1 style="margin-top:0">Projects</h1>
 
-<nav>
-<a href="index.html">Home</a>
-<a href="queues.html">Queues</a>
-</nav>
+  <div class="card">
+    <h2>Create project</h2>
+    <form id="createForm">
+      <label>Name</label>
+      <input type="text" id="name" required placeholder="e.g. Marketing Automation">
+      <button class="btn" type="submit">Create project</button>
+    </form>
+    <div id="createMsg" style="display:none"></div>
+  </div>
 
-<h3>Create Project</h3>
-
-<input id="projectName" placeholder="Project Name">
-
-<input id="projectDescription" placeholder="Description">
-
-<button onclick="createProject()">
-Create Project
-</button>
-
-<hr>
-
-<h3>Projects</h3>
-
-<button onclick="loadProjects()">
-Refresh
-</button>
-
-<table>
-
-<thead>
-
-<tr>
-
-<th>ID</th>
-<th>Name</th>
-<th>Description</th>
-<th>Action</th>
-
-</tr>
-
-</thead>
-
-<tbody id="projectsTable">
-
-</tbody>
-
-</table>
-
-<pre id="output"></pre>
+  <div class="card">
+    <h2>Your projects</h2>
+    <div id="listMsg" style="display:none"></div>
+    <table id="projectsTable">
+      <thead><tr><th>Name</th><th>Created</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <div id="empty" class="empty" style="display:none">No projects yet — create one above.</div>
+  </div>
+</main>
 
 <script src="js/api.js"></script>
-<script src="js/projects.js"></script>
+<script>
+requireAuth();
+renderNav("projects.html");
+
+async function loadProjects() {
+    const listMsg = document.getElementById("listMsg");
+    hideBox(listMsg);
+    let projects;
+    try {
+        projects = await apiFetch("/projects") || [];
+    } catch (err) {
+        showError(listMsg, err);
+        return;
+    }
+
+    const tbody = document.querySelector("#projectsTable tbody");
+    tbody.innerHTML = "";
+    document.getElementById("empty").style.display = projects.length ? "none" : "block";
+    projects.forEach(p => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td>${p.name}</td>
+            <td class="muted">${fmtDate(p.createdAt)}</td>
+            <td><a href="queues.html?projectId=${p.id}&projectName=${encodeURIComponent(p.name)}"><button class="btn-sm" type="button">Manage queues</button></a></td>`;
+        tbody.appendChild(tr);
+    });
+}
+
+document.getElementById("createForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const createMsg = document.getElementById("createMsg");
+    hideBox(createMsg);
+    try {
+        await apiFetch("/projects", "POST", { name: document.getElementById("name").value });
+        document.getElementById("name").value = "";
+        showSuccess(createMsg, "Project created.");
+        loadProjects();
+    } catch (err) {
+        showError(createMsg, err);
+    }
+});
+
+loadProjects();
+</script>
 
 </body>
-
 </html>

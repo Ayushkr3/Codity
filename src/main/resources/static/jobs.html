@@ -1,92 +1,381 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-    <title>Jobs</title>
-    <link rel="stylesheet" href="css/style.css">
+<meta charset="UTF-8">
+<title>Jobs - Job Scheduler</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.min.js"></script>
 </head>
-
 <body>
 
-<h2>Jobs</h2>
+<main>
+  <p class="muted"><a href="javascript:history.back()">&larr; Back to queues</a></p>
+  <h1 style="margin-top:0" id="title">Jobs</h1>
 
-<nav>
-<a href="queues.html">Queues</a>
-<a href="recurring.html">Recurring Jobs</a>
-</nav>
+  <div class="grid-2">
+    <div class="card">
+      <h2>Create job</h2>
+      <form id="createForm">
+        <label>Job type</label>
+        <input type="text" id="type" required placeholder="e.g. SendEmail">
 
-<p>
-Selected Queue:
-<span id="queueId"></span>
-</p>
+        <label>Payload (JSON or plain text)</label>
+        <textarea id="payload" placeholder='{"to":"user@example.com"}'></textarea>
 
-<h3>Create Job</h3>
+        <label>Priority</label>
+        <input type="number" id="priority" value="0">
 
-<input id="jobName" placeholder="Job Name">
+        <label>When should it run?</label>
+        <div class="radio-row">
+          <label><input type="radio" name="schedType" value="now" checked> Now</label>
+          <label><input type="radio" name="schedType" value="at"> At a time</label>
+          <label><input type="radio" name="schedType" value="delay"> After a delay</label>
+          <label><input type="radio" name="schedType" value="cron"> Cron (one-off)</label>
+        </div>
 
-<textarea id="payload" rows="6" placeholder='{"message":"hello"}'></textarea>
+        <div id="atField" style="display:none">
+          <label>Run at</label>
+          <input type="datetime-local" id="atTime">
+        </div>
+        <div id="delayField" style="display:none">
+          <label>Delay (seconds from now)</label>
+          <input type="number" id="delaySeconds" value="60">
+        </div>
+        <div id="cronField" style="display:none">
+          <label>Cron expression (6-field: sec min hour day month weekday)</label>
+          <input type="text" id="cronExp" placeholder="0 0 2 * * *">
+          <div class="help">This schedules a single run at the next time the expression matches — it does not repeat.
+            For a truly recurring job, use the <strong>Recurring</strong> page for this queue instead.</div>
+        </div>
 
-<input id="priority" type="number" value="1">
+        <div class="grid-2">
+          <div>
+            <label>Max retries <span class="muted">(optional)</span></label>
+            <input type="number" id="maxRetries" placeholder="queue default">
+          </div>
+          <div>
+            <label>Retry strategy <span class="muted">(optional)</span></label>
+            <select id="retryStrategy">
+              <option value="">Queue default</option>
+              <option value="FIXED">Fixed delay</option>
+              <option value="LINEAR">Linear backoff</option>
+              <option value="EXPONENTIAL">Exponential backoff</option>
+            </select>
+          </div>
+        </div>
 
-<input id="delay" type="number" value="0">
+        <button class="btn" type="submit">Create job</button>
+      </form>
+      <div id="createMsg" style="display:none"></div>
+    </div>
 
-<button onclick="createJob()">
-Create Job
-</button>
+    <div class="card">
+      <h2>Status distribution</h2>
+      <div class="chart-box"><canvas id="statusChart"></canvas></div>
+    </div>
+  </div>
 
-<hr>
+  <div class="card">
+    <h2>Batch create</h2>
+    <p class="help">Add one or more jobs, then submit them together in a single batch (all get the same batch ID).</p>
+    <div id="batchRows"></div>
+    <button class="btn-sm" type="button" onclick="addBatchRow()">+ Add job</button>
+    <button class="btn" type="button" onclick="submitBatch()">Create batch</button>
+    <div id="batchMsg" style="display:none"></div>
+  </div>
 
-<h3>Batch Jobs</h3>
+  <div class="card">
+    <h2>Jobs</h2>
+    <div class="toolbar">
+      <div>
+        <label>Status filter</label>
+        <select id="statusFilter" onchange="page=0; loadJobs();">
+          <option value="">All</option>
+          <option>QUEUED</option>
+          <option>SCHEDULED</option>
+          <option>CLAIMED</option>
+          <option>RUNNING</option>
+          <option>COMPLETED</option>
+          <option>FAILED</option>
+          <option>DEAD_LETTER</option>
+          <option>CANCELLED</option>
+        </select>
+      </div>
+      <div>
+        <label>Page size</label>
+        <select id="pageSize" onchange="page=0; loadJobs();">
+          <option>10</option>
+          <option selected>20</option>
+          <option>50</option>
+        </select>
+      </div>
+      <div style="flex:0">
+        <button class="btn-sm" type="button" onclick="loadJobs()" style="margin-top:22px">Refresh</button>
+      </div>
+    </div>
 
-<textarea id="batchPayload" rows="10"
-placeholder='[
-{
-"name":"Job1",
-"payload":{"x":1}
-},
-{
-"name":"Job2",
-"payload":{"x":2}
-}
-]'></textarea>
+    <div id="listMsg" style="display:none"></div>
+    <table id="jobsTable">
+      <thead><tr><th>ID</th><th>Type</th><th>Status</th><th>Priority</th><th>Retries</th><th>Worker</th><th>Created</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <div id="empty" class="empty" style="display:none">No jobs match this filter.</div>
 
-<button onclick="createBatch()">
-Submit Batch
-</button>
+    <div class="pagination">
+      <button class="btn-sm" type="button" onclick="prevPage()">&laquo; Prev</button>
+      <span id="pageLabel">Page 1</span>
+      <button class="btn-sm" type="button" onclick="nextPage()">Next &raquo;</button>
+    </div>
 
-<hr>
-
-<button onclick="loadJobs()">
-Load Jobs
-</button>
-
-<table>
-
-<thead>
-
-<tr>
-
-<th>ID</th>
-<th>Name</th>
-<th>Status</th>
-<th>Priority</th>
-<th>Actions</th>
-
-</tr>
-
-</thead>
-
-<tbody id="jobsTable">
-
-</tbody>
-
-</table>
-
-<pre id="output"></pre>
+    <div id="detailsBox" class="details-box" style="display:none"></div>
+  </div>
+</main>
 
 <script src="js/api.js"></script>
-<script src="js/jobs.js"></script>
+<script>
+requireAuth();
+renderNav("projects.html");
+
+const queueId = qs("queueId");
+const queueName = qs("queueName");
+if (!queueId) window.location.href = "projects.html";
+document.getElementById("title").textContent = "Jobs" + (queueName ? " — " + queueName : "");
+
+let page = 0;
+let lastPage = null;
+let statusChart;
+
+// ---------- schedule-type radio toggling ----------
+document.querySelectorAll('input[name="schedType"]').forEach(radio => {
+    radio.addEventListener("change", () => {
+        const chosen = document.querySelector('input[name="schedType"]:checked').value;
+        document.getElementById("atField").style.display = chosen === "at" ? "block" : "none";
+        document.getElementById("delayField").style.display = chosen === "delay" ? "block" : "none";
+        document.getElementById("cronField").style.display = chosen === "cron" ? "block" : "none";
+    });
+});
+
+// ---------- create job ----------
+document.getElementById("createForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const createMsg = document.getElementById("createMsg");
+    hideBox(createMsg);
+
+    const schedType = document.querySelector('input[name="schedType"]:checked').value;
+    const body = {
+        type: document.getElementById("type").value,
+        payLoad: document.getElementById("payload").value,
+        priority: Number(document.getElementById("priority").value)
+    };
+    if (schedType === "at") {
+        const val = document.getElementById("atTime").value;
+        if (val) body.atTime = new Date(val).toISOString();
+    } else if (schedType === "delay") {
+        body.DelaySecond = Number(document.getElementById("delaySeconds").value);
+    } else if (schedType === "cron") {
+        body.CronExp = document.getElementById("cronExp").value;
+    }
+    const maxRetries = document.getElementById("maxRetries").value;
+    if (maxRetries) body.maxRetries = Number(maxRetries);
+    const retryStrategy = document.getElementById("retryStrategy").value;
+    if (retryStrategy) body.retryStrategy = retryStrategy;
+
+    try {
+        const job = await apiFetch(`/queues/${queueId}/jobs`, "POST", body);
+        showSuccess(createMsg, `Job #${job.id} created with status ${job.status}.`);
+        document.getElementById("createForm").reset();
+        document.getElementById("atField").style.display = "none";
+        document.getElementById("delayField").style.display = "none";
+        document.getElementById("cronField").style.display = "none";
+        page = 0;
+        loadJobs();
+        loadStatusChart();
+    } catch (err) {
+        showError(createMsg, err);
+    }
+});
+
+// ---------- batch create ----------
+let batchRowCount = 0;
+function addBatchRow() {
+    batchRowCount++;
+    const div = document.createElement("div");
+    div.className = "grid-2";
+    div.style.marginBottom = "8px";
+    div.dataset.row = batchRowCount;
+    div.innerHTML = `
+        <div><input type="text" class="batchType" placeholder="Job type"></div>
+        <div style="display:flex;gap:6px">
+            <input type="text" class="batchPayload" placeholder="Payload (JSON or text)">
+            <button class="btn-sm danger" type="button" onclick="this.closest('div[data-row]').remove()">x</button>
+        </div>`;
+    document.getElementById("batchRows").appendChild(div);
+}
+addBatchRow();
+addBatchRow();
+
+async function submitBatch() {
+    const batchMsg = document.getElementById("batchMsg");
+    hideBox(batchMsg);
+    const rows = document.querySelectorAll("#batchRows div[data-row]");
+    const jobs = [];
+    rows.forEach(row => {
+        const type = row.querySelector(".batchType").value;
+        const payLoad = row.querySelector(".batchPayload").value;
+        if (type) jobs.push({ type, payLoad });
+    });
+    if (!jobs.length) {
+        showError(batchMsg, new Error("Add at least one job with a type."));
+        return;
+    }
+    try {
+        const created = await apiFetch(`/queues/${queueId}/jobs/batch`, "POST", { jobs });
+        showSuccess(batchMsg, `Created ${created.length} job(s) in one batch.`);
+        page = 0;
+        loadJobs();
+        loadStatusChart();
+    } catch (err) {
+        showError(batchMsg, err);
+    }
+}
+
+// ---------- job list ----------
+async function loadJobs() {
+    const listMsg = document.getElementById("listMsg");
+    hideBox(listMsg);
+    document.getElementById("detailsBox").style.display = "none";
+
+    const status = document.getElementById("statusFilter").value;
+    const size = document.getElementById("pageSize").value;
+    const qsParams = new URLSearchParams({ page, size });
+    if (status) qsParams.set("status", status);
+
+    let data;
+    try {
+        data = await apiFetch(`/queues/${queueId}/jobs?${qsParams.toString()}`);
+    } catch (err) {
+        showError(listMsg, err);
+        return;
+    }
+
+    lastPage = data;
+    const jobs = data.content || [];
+    const tbody = document.querySelector("#jobsTable tbody");
+    tbody.innerHTML = "";
+    document.getElementById("empty").style.display = jobs.length ? "none" : "block";
+
+    jobs.forEach(j => {
+        const canRetry = j.status === "FAILED" || j.status === "DEAD_LETTER";
+        const canCancel = j.status === "QUEUED" || j.status === "SCHEDULED";
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td>${j.id}</td>
+            <td>${j.type}</td>
+            <td><span class="badge ${j.status}">${j.status}</span></td>
+            <td>${j.priority}</td>
+            <td>${j.retryCount}/${j.maxRetries}</td>
+            <td class="muted">${j.workerId ? j.workerId.slice(0, 8) + '…' : '-'}</td>
+            <td class="muted">${fmtDate(j.createdAt)}</td>
+            <td class="job-row-actions">
+                <button class="btn-sm" type="button" onclick="viewLogs(${j.id})">Logs</button>
+                <button class="btn-sm" type="button" onclick="viewExecutions(${j.id})">Attempts</button>
+                ${canRetry ? `<button class="btn-sm" type="button" onclick="retryJob(${j.id})">Retry</button>` : ""}
+                ${canCancel ? `<button class="btn-sm danger" type="button" onclick="cancelJob(${j.id})">Cancel</button>` : ""}
+            </td>`;
+        tbody.appendChild(tr);
+    });
+
+    document.getElementById("pageLabel").textContent =
+        `Page ${data.number + 1} of ${Math.max(data.totalPages, 1)} (${data.totalElements} job${data.totalElements === 1 ? '' : 's'})`;
+}
+
+function prevPage() { if (page > 0) { page--; loadJobs(); } }
+function nextPage() { if (lastPage && page < lastPage.totalPages - 1) { page++; loadJobs(); } }
+
+async function retryJob(jobId) {
+    try {
+        await apiFetch(`/queues/${queueId}/jobs/${jobId}/retry`, "POST");
+        loadJobs();
+        loadStatusChart();
+    } catch (err) {
+        showError(document.getElementById("listMsg"), err);
+    }
+}
+
+async function cancelJob(jobId) {
+    if (!confirm("Cancel job #" + jobId + "?")) return;
+    try {
+        await apiFetch(`/queues/${queueId}/jobs/${jobId}`, "DELETE");
+        loadJobs();
+        loadStatusChart();
+    } catch (err) {
+        showError(document.getElementById("listMsg"), err);
+    }
+}
+
+async function viewLogs(jobId) {
+    const box = document.getElementById("detailsBox");
+    box.style.display = "block";
+    box.innerHTML = "<h4>Logs — job #" + jobId + "</h4>Loading...";
+    try {
+        const logs = await apiFetch(`/queues/${queueId}/jobs/${jobId}/logs`) || [];
+        box.innerHTML = "<h4>Logs — job #" + jobId + "</h4>" + (logs.length
+            ? logs.map(l => `<div>[${fmtDate(l.createdAt)}] <strong>${l.level}</strong> — ${escapeHtml(l.message)}</div>`).join("")
+            : "<div class='muted'>No log entries yet.</div>");
+    } catch (err) {
+        box.innerHTML = "<h4>Logs — job #" + jobId + "</h4><div class='error-box'>" + err.message + "</div>";
+    }
+}
+
+async function viewExecutions(jobId) {
+    const box = document.getElementById("detailsBox");
+    box.style.display = "block";
+    box.innerHTML = "<h4>Attempt history — job #" + jobId + "</h4>Loading...";
+    try {
+        const execs = await apiFetch(`/queues/${queueId}/jobs/${jobId}/executions`) || [];
+        box.innerHTML = "<h4>Attempt history — job #" + jobId + "</h4>" + (execs.length
+            ? execs.map(x => `<div>Attempt ${x.attemptNumber} — <span class="badge ${x.status}">${x.status}</span>
+                worker ${x.workerId ? x.workerId.slice(0,8) : '-'}…,
+                started ${fmtDate(x.startedAt)}, completed ${fmtDate(x.completedAt)}
+                ${x.errorMessage ? '<br><span class="muted">Error: ' + escapeHtml(x.errorMessage) + '</span>' : ''}</div>`).join("<hr>")
+            : "<div class='muted'>No attempts recorded yet.</div>");
+    } catch (err) {
+        box.innerHTML = "<h4>Attempt history — job #" + jobId + "</h4><div class='error-box'>" + err.message + "</div>";
+    }
+}
+
+function escapeHtml(s) {
+    const div = document.createElement("div");
+    div.textContent = s == null ? "" : s;
+    return div.innerHTML;
+}
+
+// ---------- status chart ----------
+async function loadStatusChart() {
+    let stats;
+    try {
+        stats = await apiFetch(`/queues/${queueId}`);
+    } catch (err) {
+        return;
+    }
+    const counts = stats.jobCountsByStatus || {};
+    const labels = Object.keys(counts);
+    const values = labels.map(l => counts[l]);
+    const colors = { QUEUED:"#d97706", SCHEDULED:"#f59e0b", CLAIMED:"#60a5fa", RUNNING:"#2563eb",
+        COMPLETED:"#16a34a", FAILED:"#f87171", DEAD_LETTER:"#dc2626", CANCELLED:"#6b7280" };
+
+    const ctx = document.getElementById("statusChart");
+    if (statusChart) statusChart.destroy();
+    statusChart = new Chart(ctx, {
+        type: "doughnut",
+        data: { labels, datasets: [{ data: values, backgroundColor: labels.map(l => colors[l] || "#999") }] },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
+}
+
+loadJobs();
+loadStatusChart();
+</script>
 
 </body>
-
 </html>

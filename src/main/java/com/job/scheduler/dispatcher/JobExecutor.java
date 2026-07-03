@@ -8,8 +8,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import jakarta.annotation.PreDestroy;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -25,6 +23,8 @@ import com.job.scheduler.repository.JobExecutionRepository;
 import com.job.scheduler.repository.JobLogRepository;
 import com.job.scheduler.repository.JobRepository;
 import com.job.scheduler.util.RetryPolicy;
+
+import jakarta.annotation.PreDestroy;
 
 @Component
 public class JobExecutor {

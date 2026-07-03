@@ -2,14 +2,6 @@ package com.job.scheduler.util;
 
 import com.job.scheduler.enums.RetryMethods;
 
-/**
- * Computes the delay (in seconds) before the next retry attempt of a failed job,
- * based on the queue/job's configured retry strategy.
- *
- * FIXED       -> always waits `baseDelaySeconds`
- * LINEAR      -> waits `baseDelaySeconds * attemptNumber`
- * EXPONENTIAL -> waits `baseDelaySeconds * 2^(attemptNumber - 1)`, capped at maxDelaySeconds
- */
 public final class RetryPolicy {
 
     private static final long DEFAULT_BASE_DELAY_SECONDS = 5;

@@ -1,59 +1,110 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-
-<title>Dead Letter Queue</title>
-
+<meta charset="UTF-8">
+<title>Dead Letter Queue - Job Scheduler</title>
 <link rel="stylesheet" href="css/style.css">
-
 </head>
-
 <body>
 
-<h2>Dead Letter Queue</h2>
+<main>
+  <h1 style="margin-top:0">Dead Letter Queue</h1>
+  <p class="muted">Jobs that exhausted their retries land here. You can inspect the failure reason and requeue them for another attempt.</p>
 
-<nav>
+  <div class="card">
+    <div class="toolbar">
+      <div>
+        <label>Page size</label>
+        <select id="pageSize" onchange="page=0; load();">
+          <option>10</option>
+          <option selected>20</option>
+          <option>50</option>
+        </select>
+      </div>
+      <div style="flex:0">
+        <button class="btn-sm" type="button" onclick="load()" style="margin-top:22px">Refresh</button>
+      </div>
+    </div>
 
-<a href="workers.html">Workers</a>
+    <div id="msg" style="display:none"></div>
+    <table id="table">
+      <thead><tr><th>Job</th><th>Reason</th><th>Payload snapshot</th><th>Retries at failure</th><th>Failed at</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <div id="empty" class="empty" style="display:none">Nothing in the dead letter queue right now.</div>
 
-</nav>
-
-<button onclick="loadDLQ()">
-
-Refresh
-
-</button>
-
-<table>
-
-<thead>
-
-<tr>
-
-<th>ID</th>
-
-<th>Job</th>
-
-<th>Reason</th>
-
-<th>Action</th>
-
-</tr>
-
-</thead>
-
-<tbody id="table">
-
-</tbody>
-
-</table>
-
-<pre id="output"></pre>
+    <div class="pagination">
+      <button class="btn-sm" type="button" onclick="prevPage()">&laquo; Prev</button>
+      <span id="pageLabel">Page 1</span>
+      <button class="btn-sm" type="button" onclick="nextPage()">Next &raquo;</button>
+    </div>
+  </div>
+</main>
 
 <script src="js/api.js"></script>
-<script src="js/dlq.js"></script>
+<script>
+requireAuth();
+renderNav("dlq.html");
+
+let page = 0;
+let lastPage = null;
+
+async function load() {
+    const msg = document.getElementById("msg");
+    hideBox(msg);
+    const size = document.getElementById("pageSize").value;
+
+    let data;
+    try {
+        data = await apiFetch(`/dlq?page=${page}&size=${size}`);
+    } catch (err) {
+        showError(msg, err);
+        return;
+    }
+
+    lastPage = data;
+    const entries = data.content || [];
+    const tbody = document.querySelector("#table tbody");
+    tbody.innerHTML = "";
+    document.getElementById("empty").style.display = entries.length ? "none" : "block";
+
+    entries.forEach(d => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td>#${d.jobId} <span class="muted">(${d.jobType})</span></td>
+            <td class="muted">${escapeHtml(d.reason || "")}</td>
+            <td class="muted">${escapeHtml((d.payloadSnapshot || "").slice(0, 60))}</td>
+            <td>${d.retryCountAtFailure}</td>
+            <td class="muted">${fmtDate(d.failedAt)}</td>
+            <td><button class="btn-sm" type="button" onclick="requeue(${d.id})">Requeue</button></td>`;
+        tbody.appendChild(tr);
+    });
+
+    document.getElementById("pageLabel").textContent =
+        `Page ${data.number + 1} of ${Math.max(data.totalPages, 1)} (${data.totalElements} entr${data.totalElements === 1 ? 'y' : 'ies'})`;
+}
+
+function prevPage() { if (page > 0) { page--; load(); } }
+function nextPage() { if (lastPage && page < lastPage.totalPages - 1) { page++; load(); } }
+
+async function requeue(id) {
+    try {
+        const job = await apiFetch(`/dlq/${id}/requeue`, "POST");
+        showSuccess(document.getElementById("msg"), `Job #${job.id} requeued (status: ${job.status}).`);
+        load();
+    } catch (err) {
+        showError(document.getElementById("msg"), err);
+    }
+}
+
+function escapeHtml(s) {
+    const div = document.createElement("div");
+    div.textContent = s == null ? "" : s;
+    return div.innerHTML;
+}
+
+load();
+</script>
 
 </body>
-
 </html>

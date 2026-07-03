@@ -1,69 +1,184 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-    <title>Recurring Jobs</title>
-    <link rel="stylesheet" href="css/style.css">
+<meta charset="UTF-8">
+<title>Recurring Jobs - Job Scheduler</title>
+<link rel="stylesheet" href="css/style.css">
 </head>
-
 <body>
 
-<h2>Recurring Jobs</h2>
+<main>
+  <p class="muted"><a href="javascript:history.back()">&larr; Back to queues</a></p>
+  <h1 style="margin-top:0" id="title">Recurring jobs</h1>
 
-<nav>
-<a href="jobs.html">Jobs</a>
-<a href="workers.html">Workers</a>
-</nav>
+  <div class="card">
+    <h2>Create recurring job</h2>
+    <form id="createForm">
+      <label>Name</label>
+      <input type="text" id="name" required placeholder="e.g. nightly-report">
 
-<p>
-Selected Queue:
-<span id="queueId"></span>
-</p>
+      <label>Job type</label>
+      <input type="text" id="type" required placeholder="e.g. SendReport">
 
-<h3>Create Recurring Job</h3>
+      <label>Payload (JSON or plain text)</label>
+      <textarea id="payload" placeholder='{"report":"daily"}'></textarea>
 
-<input id="name" placeholder="Job Name">
+      <label>Schedule preset</label>
+      <select id="preset"></select>
 
-<input id="cron" placeholder="Cron Expression">
+      <label>Cron expression <span class="muted">(6-field: sec min hour day month weekday)</span></label>
+      <input type="text" id="cronExpression" required placeholder="0 0 2 * * *">
 
-<textarea id="payload" rows="6">{}</textarea>
+      <div class="grid-3">
+        <div>
+          <label>Priority</label>
+          <input type="number" id="priority" placeholder="0">
+        </div>
+        <div>
+          <label>Max retries</label>
+          <input type="number" id="maxRetries" placeholder="queue default">
+        </div>
+        <div>
+          <label>Retry strategy</label>
+          <select id="retryStrategy">
+            <option value="">Queue default</option>
+            <option value="FIXED">Fixed delay</option>
+            <option value="LINEAR">Linear backoff</option>
+            <option value="EXPONENTIAL">Exponential backoff</option>
+          </select>
+        </div>
+      </div>
 
-<button onclick="createRecurring()">
-Create
-</button>
+      <button class="btn" type="submit">Create recurring job</button>
+    </form>
+    <div id="createMsg" style="display:none"></div>
+  </div>
 
-<hr>
-
-<button onclick="loadRecurring()">
-Load Recurring Jobs
-</button>
-
-<table>
-
-<thead>
-
-<tr>
-
-<th>ID</th>
-<th>Name</th>
-<th>Cron</th>
-<th>Actions</th>
-
-</tr>
-
-</thead>
-
-<tbody id="table">
-
-</tbody>
-
-</table>
-
-<pre id="output"></pre>
+  <div class="card">
+    <h2>Existing recurring jobs</h2>
+    <div id="listMsg" style="display:none"></div>
+    <table id="table">
+      <thead><tr><th>Name</th><th>Type</th><th>Cron</th><th>Enabled</th><th>Next run</th><th>Last run</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <div id="empty" class="empty" style="display:none">No recurring jobs for this queue yet.</div>
+  </div>
+</main>
 
 <script src="js/api.js"></script>
-<script src="js/recurring.js"></script>
+<script>
+requireAuth();
+renderNav("projects.html");
+
+const queueId = qs("queueId");
+const queueName = qs("queueName");
+if (!queueId) window.location.href = "projects.html";
+document.getElementById("title").textContent = "Recurring jobs" + (queueName ? " — " + queueName : "");
+
+const presetSelect = document.getElementById("preset");
+presetSelect.innerHTML = CRON_PRESETS.map(([expr, label]) => `<option value="${expr}">${label}</option>`).join("");
+presetSelect.addEventListener("change", () => {
+    if (presetSelect.value) document.getElementById("cronExpression").value = presetSelect.value;
+});
+
+async function loadList() {
+    const listMsg = document.getElementById("listMsg");
+    hideBox(listMsg);
+    let list;
+    try {
+        list = await apiFetch(`/queues/${queueId}/recurring-jobs`) || [];
+    } catch (err) {
+        showError(listMsg, err);
+        return;
+    }
+
+    const tbody = document.querySelector("#table tbody");
+    tbody.innerHTML = "";
+    document.getElementById("empty").style.display = list.length ? "none" : "block";
+    list.forEach(r => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td>${r.name}</td>
+            <td>${r.type}</td>
+            <td class="muted">${r.cronExpression}</td>
+            <td><span class="badge ${r.enabled ? 'ACTIVE' : 'PAUSED'}">${r.enabled ? 'ENABLED' : 'PAUSED'}</span></td>
+            <td class="muted">${fmtDate(r.nextRunAt)}</td>
+            <td class="muted">${fmtDate(r.lastRunAt)}</td>
+            <td>
+    <button class="btn-sm" type="button"
+        onclick="toggle(${r.id}, ${r.enabled})">
+        ${r.enabled ? 'Pause' : 'Resume'}
+    </button>
+
+    <button class="btn-sm danger" type="button"
+        onclick="deleteRecurring('${encodeURIComponent(r.name)}')">
+        Delete
+    </button>
+</td>`;
+        tbody.appendChild(tr);
+    });
+}
+
+async function toggle(id, enabled) {
+    try {
+        await apiFetch(`/queues/${queueId}/recurring-jobs/${id}/${enabled ? 'pause' : 'resume'}`, "POST");
+        loadList();
+    } catch (err) {
+        showError(document.getElementById("listMsg"), err);
+    }
+}
+async function deleteRecurring(name) {
+
+    if (!confirm("Delete recurring job '" + decodeURIComponent(name) + "'?")) {
+        return;
+    }
+
+    try {
+
+        await apiFetch(
+            `/queues/${queueId}/recurring-jobs/${name}`,
+            "DELETE"
+        );
+
+        loadList();
+
+    } catch (err) {
+
+        showError(document.getElementById("listMsg"), err);
+
+    }
+
+}
+document.getElementById("createForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const createMsg = document.getElementById("createMsg");
+    hideBox(createMsg);
+
+    const body = {
+        name: document.getElementById("name").value,
+        type: document.getElementById("type").value,
+        payload: document.getElementById("payload").value,
+        cronExpression: document.getElementById("cronExpression").value
+    };
+    const priority = document.getElementById("priority").value;
+    if (priority) body.priority = Number(priority);
+    const maxRetries = document.getElementById("maxRetries").value;
+    if (maxRetries) body.maxRetries = Number(maxRetries);
+    const retryStrategy = document.getElementById("retryStrategy").value;
+    if (retryStrategy) body.retryStrategy = retryStrategy;
+
+    try {
+        const created = await apiFetch(`/queues/${queueId}/recurring-jobs`, "POST", body);
+        showSuccess(createMsg, `Recurring job "${created.name}" created — next run ${fmtDate(created.nextRunAt)}.`);
+        document.getElementById("createForm").reset();
+        loadList();
+    } catch (err) {
+        showError(createMsg, err);
+    }
+});
+
+loadList();
+</script>
 
 </body>
-
 </html>

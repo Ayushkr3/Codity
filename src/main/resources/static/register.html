@@ -1,35 +1,54 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-
-<title>Register</title>
-
+<meta charset="UTF-8">
+<title>Register - Job Scheduler</title>
 <link rel="stylesheet" href="css/style.css">
-
 </head>
-
 <body>
 
-<h2>Register</h2>
+<div class="auth-wrap">
+  <div class="auth-card">
+    <h1>Create an account</h1>
+    <form id="registerForm">
+      <label>Name</label>
+      <input type="text" id="name" required>
 
-<input id="name" placeholder="Name">
+      <label>Email</label>
+      <input type="email" id="email" required>
 
-<input id="email" placeholder="Email">
+      <label>Password</label>
+      <input type="password" id="password" required minlength="6">
 
-<input id="password" type="password" placeholder="Password">
-
-<button onclick="register()">
-
-Register
-
-</button>
-
-<pre id="output"></pre>
+      <button class="btn" type="submit" style="width:100%">Register</button>
+    </form>
+        <div id="msg" style="display:none"></div>
+    <div class="switch">Already have an account? <a href="index.html">Log in</a></div>
+  </div>
+</div>
 
 <script src="js/api.js"></script>
-<script src="js/auth.js"></script>
+<script>
+if (getToken()) window.location.href = "dashboard.html";
+
+document.getElementById("registerForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const msg = document.getElementById("msg");
+    hideBox(msg);
+    try {
+        const data = await apiFetch("/auth/register", "POST", {
+            name: document.getElementById("name").value,
+            email: document.getElementById("email").value,
+            password: document.getElementById("password").value
+        });
+        if (!data) return;
+        saveAuth(data);
+        window.location.href = "dashboard.html";
+    } catch (err) {
+        showError(msg, err);
+    }
+});
+</script>
 
 </body>
-
 </html>

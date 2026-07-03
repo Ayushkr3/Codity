@@ -12,7 +12,6 @@ import com.job.scheduler.entity.Queue;
 import com.job.scheduler.entity.RecurringJobDefinition;
 import com.job.scheduler.repository.RecurringJobDefinitionRepository;
 import com.job.scheduler.util.CronUtils;
-
 @Service
 public class RecurringJobService {
 
@@ -59,7 +58,15 @@ public class RecurringJobService {
                 .map(this::toResponse)
                 .collect(Collectors.toList());
     }
-
+    public Boolean deleteRecurringJob(Long userId, Long queueId,String name){
+        queueService.getOwnedQueue(userId, queueId);
+        RecurringJobDefinition job = repository.findByName(name).orElse(null);
+        if(job!=null){
+            repository.delete(job);
+            return true;
+        }
+        return false;
+    }
     public RecurringJobResponse setEnabled(Long userId, Long id, boolean enabled) {
         RecurringJobDefinition def = repository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Recurring job not found"));

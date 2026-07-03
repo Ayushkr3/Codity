@@ -1,80 +1,147 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-
-<title>Queues</title>
-
+<meta charset="UTF-8">
+<title>Queues - Job Scheduler</title>
 <link rel="stylesheet" href="css/style.css">
-
 </head>
-
 <body>
 
-<h2>Queues</h2>
+<main>
+  <p class="muted"><a href="projects.html">&larr; All projects</a></p>
+  <h1 style="margin-top:0" id="title">Queues</h1>
 
-<nav>
+  <div class="card">
+    <h2>Create queue</h2>
+    <form id="createForm">
+      <label>Name</label>
+      <input type="text" id="name" required placeholder="e.g. emails">
 
-<a href="projects.html">Projects</a>
+      <div class="grid-2">
+        <div>
+          <label>Priority</label>
+          <input type="number" id="priority" value="0">
+        </div>
+        <div>
+          <label>Concurrency limit</label>
+          <input type="number" id="concurrencyLimit" value="5">
+        </div>
+      </div>
+      <div class="grid-2">
+        <div>
+          <label>Default max retries</label>
+          <input type="number" id="defaultMaxRetries" value="3">
+        </div>
+        <div>
+          <label>Default retry strategy</label>
+          <select id="defaultRetryStrategy">
+            <option value="EXPONENTIAL">Exponential backoff</option>
+            <option value="LINEAR">Linear backoff</option>
+            <option value="FIXED">Fixed delay</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn" type="submit">Create queue</button>
+    </form>
+    <div id="createMsg" style="display:none"></div>
+  </div>
 
-<a href="jobs.html">Jobs</a>
-
-</nav>
-
-<p>
-
-Selected Project:
-<span id="currentProject"></span>
-
-</p>
-
-<h3>Create Queue</h3>
-
-<input id="queueName" placeholder="Queue Name">
-
-<button onclick="createQueue()">
-
-Create Queue
-
-</button>
-
-<hr>
-
-<button onclick="loadQueues()">
-
-Load Queues
-
-</button>
-
-<table>
-
-<thead>
-
-<tr>
-
-<th>ID</th>
-
-<th>Name</th>
-
-<th>Status</th>
-
-<th>Actions</th>
-
-</tr>
-
-</thead>
-
-<tbody id="queueTable">
-
-</tbody>
-
-</table>
-
-<pre id="output"></pre>
+  <div class="card">
+    <h2>Queues in this project</h2>
+    <div id="listMsg" style="display:none"></div>
+    <table id="queuesTable">
+      <thead><tr><th>Name</th><th>Priority</th><th>Concurrency</th><th>Retry policy</th><th>Status</th><th>Job counts</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <div id="empty" class="empty" style="display:none">No queues yet — create one above.</div>
+  </div>
+</main>
 
 <script src="js/api.js"></script>
-<script src="js/queues.js"></script>
+<script>
+requireAuth();
+renderNav("projects.html");
+
+const projectId = qs("projectId");
+const projectName = qs("projectName");
+if (!projectId) window.location.href = "projects.html";
+document.getElementById("title").textContent = "Queues" + (projectName ? " — " + projectName : "");
+
+async function loadQueues() {
+    const listMsg = document.getElementById("listMsg");
+    hideBox(listMsg);
+    let queues;
+    try {
+        queues = await apiFetch(`/projects/${projectId}/queues`) || [];
+    } catch (err) {
+        showError(listMsg, err);
+        return;
+    }
+
+    // Fetch full stats per queue (list endpoint omits them to stay cheap).
+    let withStats;
+    try {
+        withStats = await Promise.all(queues.map(q => apiFetch(`/queues/${q.id}`)));
+    } catch (err) {
+        showError(listMsg, err);
+        return;
+    }
+
+    const tbody = document.querySelector("#queuesTable tbody");
+    tbody.innerHTML = "";
+    document.getElementById("empty").style.display = withStats.length ? "none" : "block";
+    withStats.forEach(q => {
+        const counts = q.jobCountsByStatus || {};
+        const summary = Object.entries(counts).filter(([, v]) => v > 0)
+            .map(([k, v]) => `${k}: ${v}`).join(", ") || "—";
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td>${q.name}</td>
+            <td>${q.priority}</td>
+            <td>${q.concurrencyLimit}</td>
+            <td class="muted">${q.defaultMaxRetries} retries, ${q.defaultRetryStrategy}</td>
+            <td><span class="badge ${q.paused ? 'PAUSED' : 'ACTIVE'}">${q.paused ? 'PAUSED' : 'ACTIVE'}</span></td>
+            <td class="muted">${summary}</td>
+            <td>
+                <a href="jobs.html?queueId=${q.id}&queueName=${encodeURIComponent(q.name)}"><button class="btn-sm" type="button">Jobs</button></a>
+                <a href="recurring.html?queueId=${q.id}&queueName=${encodeURIComponent(q.name)}"><button class="btn-sm" type="button">Recurring</button></a>
+                <button class="btn-sm" type="button" onclick="togglePause(${q.id}, ${q.paused})">${q.paused ? 'Resume' : 'Pause'}</button>
+            </td>`;
+        tbody.appendChild(tr);
+    });
+}
+
+async function togglePause(queueId, paused) {
+    try {
+        await apiFetch(`/queues/${queueId}/${paused ? 'resume' : 'pause'}`, "POST");
+        loadQueues();
+    } catch (err) {
+        showError(document.getElementById("listMsg"), err);
+    }
+}
+
+document.getElementById("createForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const createMsg = document.getElementById("createMsg");
+    hideBox(createMsg);
+    try {
+        await apiFetch(`/projects/${projectId}/queues`, "POST", {
+            name: document.getElementById("name").value,
+            priority: Number(document.getElementById("priority").value),
+            concurrencyLimit: Number(document.getElementById("concurrencyLimit").value),
+            defaultMaxRetries: Number(document.getElementById("defaultMaxRetries").value),
+            defaultRetryStrategy: document.getElementById("defaultRetryStrategy").value
+        });
+        document.getElementById("createForm").reset();
+        showSuccess(createMsg, "Queue created.");
+        loadQueues();
+    } catch (err) {
+        showError(createMsg, err);
+    }
+});
+
+loadQueues();
+</script>
 
 </body>
-
 </html>

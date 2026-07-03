@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -42,6 +43,21 @@ public class RecurringJobController {
             @PathVariable Long queueId) {
         Long userId = (Long) auth.getPrincipal();
         return ResponseEntity.ok(recurringJobService.listForQueue(userId, queueId));
+    }
+
+    @DeleteMapping("/{name}")
+    public ResponseEntity<Void> delete(
+            Authentication auth,
+            @PathVariable Long queueId,
+            @PathVariable String name) {
+
+        Long userId = (Long) auth.getPrincipal();
+
+        if (recurringJobService.deleteRecurringJob(userId, queueId, name)) {
+            return ResponseEntity.ok().build();
+        }
+
+        return ResponseEntity.badRequest().build();
     }
 
     @PostMapping("/{id}/pause")
