@@ -257,8 +257,7 @@ erDiagram
 
 ### Why `SELECT ... FOR UPDATE SKIP LOCKED` for claiming
 
-This is the one piece of the original code that was already right, and everything
-added builds around it rather than replacing it. Alternatives considered:
+This is the one closest approaches to orignal design requirement. Alternatives considered:
 
 - **Optimistic locking (`@Version` + retry loop)**: works, but under contention
   (many workers polling the same queue) you get a lot of wasted retries as workers
