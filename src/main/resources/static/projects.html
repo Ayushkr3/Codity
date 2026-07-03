@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Projects</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+<h2>Projects</h2>
+
+<nav>
+<a href="index.html">Home</a>
+<a href="queues.html">Queues</a>
+</nav>
+
+<h3>Create Project</h3>
+
+<input id="projectName" placeholder="Project Name">
+
+<input id="projectDescription" placeholder="Description">
+
+<button onclick="createProject()">
+Create Project
+</button>
+
+<hr>
+
+<h3>Projects</h3>
+
+<button onclick="loadProjects()">
+Refresh
+</button>
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>ID</th>
+<th>Name</th>
+<th>Description</th>
+<th>Action</th>
+
+</tr>
+
+</thead>
+
+<tbody id="projectsTable">
+
+</tbody>
+
+</table>
+
+<pre id="output"></pre>
+
+<script src="js/api.js"></script>
+<script src="js/projects.js"></script>
+
+</body>
+
+</html>

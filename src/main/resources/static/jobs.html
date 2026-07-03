@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Jobs</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+<h2>Jobs</h2>
+
+<nav>
+<a href="queues.html">Queues</a>
+<a href="recurring.html">Recurring Jobs</a>
+</nav>
+
+<p>
+Selected Queue:
+<span id="queueId"></span>
+</p>
+
+<h3>Create Job</h3>
+
+<input id="jobName" placeholder="Job Name">
+
+<textarea id="payload" rows="6" placeholder='{"message":"hello"}'></textarea>
+
+<input id="priority" type="number" value="1">
+
+<input id="delay" type="number" value="0">
+
+<button onclick="createJob()">
+Create Job
+</button>
+
+<hr>
+
+<h3>Batch Jobs</h3>
+
+<textarea id="batchPayload" rows="10"
+placeholder='[
+{
+"name":"Job1",
+"payload":{"x":1}
+},
+{
+"name":"Job2",
+"payload":{"x":2}
+}
+]'></textarea>
+
+<button onclick="createBatch()">
+Submit Batch
+</button>
+
+<hr>
+
+<button onclick="loadJobs()">
+Load Jobs
+</button>
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>ID</th>
+<th>Name</th>
+<th>Status</th>
+<th>Priority</th>
+<th>Actions</th>
+
+</tr>
+
+</thead>
+
+<tbody id="jobsTable">
+
+</tbody>
+
+</table>
+
+<pre id="output"></pre>
+
+<script src="js/api.js"></script>
+<script src="js/jobs.js"></script>
+
+</body>
+
+</html>

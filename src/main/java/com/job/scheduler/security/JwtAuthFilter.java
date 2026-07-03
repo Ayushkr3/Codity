@@ -32,7 +32,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             String token = header.substring(7);
 
             if (jwtUtil.isTokenValid(token)) {
-                String email = jwtUtil.extractEmail(token);
+                //String email = jwtUtil.extractEmail(token);
                 Long userId = jwtUtil.extractUserId(token);
 
                 var auth = new UsernamePasswordAuthenticationToken(

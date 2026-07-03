@@ -8,13 +8,16 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.OneToOne;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "projects")
+@Table(name = "projects", indexes = {
+    @Index(name = "idx_projects_owner", columnList = "owner_id")
+})
 public class Project {
 
     @Id
@@ -23,8 +26,8 @@ public class Project {
 
     @Column(nullable = false)
     private String name;
-
-    @OneToOne(fetch = FetchType.LAZY)
+    
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id", nullable = false)
     private User owner;
 

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Recurring Jobs</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+<h2>Recurring Jobs</h2>
+
+<nav>
+<a href="jobs.html">Jobs</a>
+<a href="workers.html">Workers</a>
+</nav>
+
+<p>
+Selected Queue:
+<span id="queueId"></span>
+</p>
+
+<h3>Create Recurring Job</h3>
+
+<input id="name" placeholder="Job Name">
+
+<input id="cron" placeholder="Cron Expression">
+
+<textarea id="payload" rows="6">{}</textarea>
+
+<button onclick="createRecurring()">
+Create
+</button>
+
+<hr>
+
+<button onclick="loadRecurring()">
+Load Recurring Jobs
+</button>
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>ID</th>
+<th>Name</th>
+<th>Cron</th>
+<th>Actions</th>
+
+</tr>
+
+</thead>
+
+<tbody id="table">
+
+</tbody>
+
+</table>
+
+<pre id="output"></pre>
+
+<script src="js/api.js"></script>
+<script src="js/recurring.js"></script>
+
+</body>
+
+</html>

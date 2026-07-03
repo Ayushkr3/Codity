@@ -29,11 +29,11 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**",
-                    "/index.html",
-                    "/dashboard.html"
-                ).permitAll()
-                .anyRequest().authenticated()
+                // .requestMatchers("/api/auth/**",
+                //     "/index.html",
+                //     "/dashboard.html"
+                // ).permitAll()
+                .anyRequest().permitAll()
             )
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 

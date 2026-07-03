@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>Dead Letter Queue</title>
+
+<link rel="stylesheet" href="css/style.css">
+
+</head>
+
+<body>
+
+<h2>Dead Letter Queue</h2>
+
+<nav>
+
+<a href="workers.html">Workers</a>
+
+</nav>
+
+<button onclick="loadDLQ()">
+
+Refresh
+
+</button>
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>ID</th>
+
+<th>Job</th>
+
+<th>Reason</th>
+
+<th>Action</th>
+
+</tr>
+
+</thead>
+
+<tbody id="table">
+
+</tbody>
+
+</table>
+
+<pre id="output"></pre>
+
+<script src="js/api.js"></script>
+<script src="js/dlq.js"></script>
+
+</body>
+
+</html>

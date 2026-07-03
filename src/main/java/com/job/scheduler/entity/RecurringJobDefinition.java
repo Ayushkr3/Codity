@@ -2,7 +2,6 @@ package com.job.scheduler.entity;
 
 import java.time.Instant;
 
-import com.job.scheduler.enums.JobStatus;
 import com.job.scheduler.enums.RetryMethods;
 
 import jakarta.persistence.Column;
@@ -19,13 +18,12 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 
+
 @Entity
-@Table(name = "jobs", indexes = {
-    @Index(name = "idx_jobs_claim", columnList = "status, queue_id, priority, scheduled_at"),
-    @Index(name = "idx_jobs_queue", columnList = "queue_id"),
-    @Index(name = "idx_jobs_status", columnList = "status")
+@Table(name = "scheduled_jobs", indexes = {
+    @Index(name = "idx_recurring_next_run", columnList = "enabled, next_run_at")
 })
-public class Job {
+public class RecurringJobDefinition {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -36,30 +34,19 @@ public class Job {
     private Queue queue;
 
     @Column(nullable = false)
+    private String name;
+
+    @Column(nullable = false)
     private String type;
 
-    //@Column(columnDefinition = "jsonb")
-    @Column
+    @Column(columnDefinition = "text")
     private String payload;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private JobStatus status;
+    @Column(name = "cron_expression", nullable = false)
+    private String cronExpression;
 
     @Column(nullable = false)
     private Integer priority = 0;
-
-    @Column(name = "scheduled_at")
-    private Instant scheduledAt;
-
-    @Column(name = "cron_expression")
-    private String cronExpression;
-
-    @Column(name = "batch_id")
-    private String batchId;
-
-    @Column(name = "retry_count", nullable = false)
-    private Integer retryCount = 0;
 
     @Column(name = "max_retries", nullable = false)
     private Integer maxRetries = 3;
@@ -68,20 +55,14 @@ public class Job {
     @Column(name = "retry_strategy", length = 20)
     private RetryMethods retryStrategy = RetryMethods.EXPONENTIAL;
 
-    @Column(name = "worker_id")
-    private String workerId;
+    @Column(nullable = false)
+    private Boolean enabled = true;
 
-    @Column(name = "claimed_at")
-    private Instant claimedAt;
+    @Column(name = "next_run_at", nullable = false)
+    private Instant nextRunAt;
 
-    @Column(name = "started_at")
-    private Instant startedAt;
-
-    @Column(name = "completed_at")
-    private Instant completedAt;
-
-    @Column(name = "last_error", columnDefinition = "text")
-    private String lastError;
+    @Column(name = "last_run_at")
+    private Instant lastRunAt;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
@@ -89,13 +70,10 @@ public class Job {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt = Instant.now();
 
-
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = Instant.now();
     }
-
-    // getters and setters
 
     public Long getId() {
         return id;
@@ -111,6 +89,14 @@ public class Job {
 
     public void setQueue(Queue queue) {
         this.queue = queue;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public String getType() {
@@ -129,30 +115,6 @@ public class Job {
         this.payload = payload;
     }
 
-    public JobStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(JobStatus status) {
-        this.status = status;
-    }
-
-    public Integer getPriority() {
-        return priority;
-    }
-
-    public void setPriority(Integer priority) {
-        this.priority = priority;
-    }
-
-    public Instant getScheduledAt() {
-        return scheduledAt;
-    }
-
-    public void setScheduledAt(Instant scheduledAt) {
-        this.scheduledAt = scheduledAt;
-    }
-
     public String getCronExpression() {
         return cronExpression;
     }
@@ -161,20 +123,12 @@ public class Job {
         this.cronExpression = cronExpression;
     }
 
-    public String getBatchId() {
-        return batchId;
+    public Integer getPriority() {
+        return priority;
     }
 
-    public void setBatchId(String batchId) {
-        this.batchId = batchId;
-    }
-
-    public Integer getRetryCount() {
-        return retryCount;
-    }
-
-    public void setRetryCount(Integer retryCount) {
-        this.retryCount = retryCount;
+    public void setPriority(Integer priority) {
+        this.priority = priority;
     }
 
     public Integer getMaxRetries() {
@@ -193,44 +147,28 @@ public class Job {
         this.retryStrategy = retryStrategy;
     }
 
-    public String getWorkerId() {
-        return workerId;
+    public Boolean getEnabled() {
+        return enabled;
     }
 
-    public void setWorkerId(String workerId) {
-        this.workerId = workerId;
+    public void setEnabled(Boolean enabled) {
+        this.enabled = enabled;
     }
 
-    public Instant getClaimedAt() {
-        return claimedAt;
+    public Instant getNextRunAt() {
+        return nextRunAt;
     }
 
-    public void setClaimedAt(Instant claimedAt) {
-        this.claimedAt = claimedAt;
+    public void setNextRunAt(Instant nextRunAt) {
+        this.nextRunAt = nextRunAt;
     }
 
-    public Instant getStartedAt() {
-        return startedAt;
+    public Instant getLastRunAt() {
+        return lastRunAt;
     }
 
-    public void setStartedAt(Instant startedAt) {
-        this.startedAt = startedAt;
-    }
-
-    public Instant getCompletedAt() {
-        return completedAt;
-    }
-
-    public void setCompletedAt(Instant completedAt) {
-        this.completedAt = completedAt;
-    }
-
-    public String getLastError() {
-        return lastError;
-    }
-
-    public void setLastError(String lastError) {
-        this.lastError = lastError;
+    public void setLastRunAt(Instant lastRunAt) {
+        this.lastRunAt = lastRunAt;
     }
 
     public Instant getCreatedAt() {
@@ -248,5 +186,4 @@ public class Job {
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
     }
-    
 }

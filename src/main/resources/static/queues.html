@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>Queues</title>
+
+<link rel="stylesheet" href="css/style.css">
+
+</head>
+
+<body>
+
+<h2>Queues</h2>
+
+<nav>
+
+<a href="projects.html">Projects</a>
+
+<a href="jobs.html">Jobs</a>
+
+</nav>
+
+<p>
+
+Selected Project:
+<span id="currentProject"></span>
+
+</p>
+
+<h3>Create Queue</h3>
+
+<input id="queueName" placeholder="Queue Name">
+
+<button onclick="createQueue()">
+
+Create Queue
+
+</button>
+
+<hr>
+
+<button onclick="loadQueues()">
+
+Load Queues
+
+</button>
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>ID</th>
+
+<th>Name</th>
+
+<th>Status</th>
+
+<th>Actions</th>
+
+</tr>
+
+</thead>
+
+<tbody id="queueTable">
+
+</tbody>
+
+</table>
+
+<pre id="output"></pre>
+
+<script src="js/api.js"></script>
+<script src="js/queues.js"></script>
+
+</body>
+
+</html>

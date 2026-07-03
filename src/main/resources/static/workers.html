@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<title>Workers</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+<h2>Workers</h2>
+
+<nav>
+
+<a href="recurring.html">Recurring</a>
+
+<a href="dlq.html">DLQ</a>
+
+</nav>
+
+<button onclick="loadWorkers()">
+
+Refresh
+
+</button>
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>ID</th>
+
+<th>Name</th>
+
+<th>Status</th>
+
+<th>Queue</th>
+
+</tr>
+
+</thead>
+
+<tbody id="table">
+
+</tbody>
+
+</table>
+
+<pre id="output"></pre>
+
+<script src="js/api.js"></script>
+<script src="js/workers.js"></script>
+
+</body>
+
+</html>
